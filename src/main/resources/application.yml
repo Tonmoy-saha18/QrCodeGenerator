@@ -1,0 +1,16 @@
+server:
+  port: 9200
+
+spring:
+  application:
+    name: OrCodeGenerator
+  profiles:
+    active: 'dev'
+  jpa:
+    open-in-view: false
+
+api-prefix: api
+springdoc:
+  swagger-ui:
+    tags-sorter: alpha
+
