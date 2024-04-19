@@ -20,6 +20,11 @@ public class AuthController implements AuthApi {
   }
 
   @Override
+  public ResponseEntity<Void> registrationRequestAgent(RegistrationRequest registrationRequest) {
+    return null;
+  }
+
+  @Override
   public ResponseEntity<LoginResponse> login(LoginRequest loginRequest) {
     return ResponseEntity.ok(authService.login(loginRequest));
   }
