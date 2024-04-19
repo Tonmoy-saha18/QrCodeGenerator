@@ -14,9 +14,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @Tag(name = "Auth")
 @RequestMapping(path = "api/auth")
 public interface AuthApi {
-  @Operation(description = "Register a user")
-  @PostMapping(path = "register")
+  @Operation(description = "Register a consumer user")
+  @PostMapping(path = "consumer-user/register")
   ResponseEntity<Void> registerUser(@RequestBody @Valid RegistrationRequest registrationRequest);
+
+  @Operation(description = "Registration request of a agent")
+  @PostMapping(path = "agent/register")
+  ResponseEntity<Void> registrationRequestAgent(
+      @RequestBody @Valid RegistrationRequest registrationRequest);
 
   @Operation(description = "Login an existing user")
   @PostMapping(path = "login")
