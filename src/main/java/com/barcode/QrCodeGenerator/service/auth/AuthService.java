@@ -9,11 +9,17 @@ import com.barcode.QrCodeGenerator.jpa.enumtype.TokenType;
 import com.barcode.QrCodeGenerator.jpa.repository.TokenRepository;
 import com.barcode.QrCodeGenerator.jpa.repository.UserRepository;
 import com.barcode.QrCodeGenerator.mapper.UserMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -45,16 +51,21 @@ public class AuthService {
         user.map(UserDetailService::new)
             .orElseThrow(() -> new UsernameNotFoundException("No user found with this email"));
     this.revokeUserToken(user.get());
-    var jwtToken = jwtService.generateToken(userDetails);
+    var jwtToken = jwtService.generateAccessToken(userDetails);
+    var jwtRefreshToken = jwtService.generateRefreshToken(userDetails);
+    this.saveUserToken(jwtToken, user.get());
+    return new LoginResponse().setAccessToken(jwtToken).setRefreshToken(jwtRefreshToken);
+  }
+
+  public void saveUserToken(String jwtToken, UserEntity user) {
     var tokenEntity =
         new TokenEntity()
             .setToken(jwtToken)
             .setTokenType(TokenType.BEARER)
-            .setUser(user.get())
+            .setUser(user)
             .setRevoked(false)
             .setExpired(false);
     tokenRepository.save(tokenEntity);
-    return new LoginResponse().setToken(jwtToken);
   }
 
   public void revokeUserToken(UserEntity user) {
@@ -68,4 +79,29 @@ public class AuthService {
   }
 
   public void resetPassword() {}
+
+  public void generateRefreshToken(HttpServletRequest request, HttpServletResponse response)
+      throws IOException {
+    final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+    if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+      return;
+    }
+    final String refreshToken = authHeader.substring(7);
+    final String userEmail = jwtService.extractUserName(refreshToken);
+    if (userEmail != null) {
+      var user = userRepository.findByUserNameOrPhoneNumber(userEmail);
+      UserDetails userDetails =
+          user.map(UserDetailService::new)
+              .orElseThrow(
+                  () -> new UsernameNotFoundException("User not found with this username"));
+      if (jwtService.isTokenValid(refreshToken, userDetails)) {
+        var accessToken = jwtService.generateAccessToken(userDetails);
+        this.revokeUserToken(user.get());
+        this.saveUserToken(accessToken, user.get());
+        LoginResponse loginResponse =
+            new LoginResponse().setAccessToken(accessToken).setRefreshToken(refreshToken);
+        new ObjectMapper().writeValue(response.getOutputStream(), loginResponse);
+      }
+    }
+  }
 }
