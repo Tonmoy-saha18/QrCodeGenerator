@@ -23,8 +23,7 @@ public class SecurityConfiguration {
   private final LogOutService logOutService;
   private final String[] allowedUrl = {
     "/",
-    "/api/auth/register",
-    "/api/auth/login",
+    "/api/auth/**",
     "/swagger-ui/**",
     "/javainuse-openapi/**",
     "/v3/api-docs",

@@ -14,3 +14,10 @@ spring:
         format_sql: true
         dialect: org.hibernate.dialect.MySQLDialect
     generate-ddl: true
+
+authentication:
+  jwt:
+    secret: f59d0703f2a6aab8081c7f1945bdd20de361de9215eb4765952e00853ea71ed0
+    expiration: 1800000
+    refresh:
+      expiration: 7200000
